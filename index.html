@@ -50,7 +50,7 @@
             try {
                 // Fetch both random images and videos concurrently
                 const [imgRes, vidRes] = await Promise.all([
-                    fetch(`${API_BASE}/api/images/random?limit=6`),
+                    fetch(`${API_BASE}/api/images/random?limit=5`),
                     fetch(`${API_BASE}/api/videos/random?limit=3`)
                 ]);
 
