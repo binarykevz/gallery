@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Memories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        .fade-in { animation: fadeIn 0.8s ease-in-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="text-center py-16">
+        <h1 class="text-5xl md:text-6xl font-serif font-bold mb-4 tracking-tight">Our Memories</h1>
+        <p class="text-slate-400 mb-8 text-lg">A collection of our favorite moments.</p>
+        <button id="shuffleBtn" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-semibold transition-all shadow-lg hover:shadow-indigo-500/50 active:scale-95">
+            ✨ Generate Random Memories
+        </button>
+    </header>
+
+    <!-- Gallery Grid -->
+    <main id="gallery" class="max-w-7xl mx-auto px-4 pb-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="col-span-full text-center text-slate-500 py-20" id="loadingState">
+            Click the button above to load memories...
+        </div>
+    </main>
+
+    <script>
+        // ⚠️ CHANGE THIS TO YOUR RENDER/PRODUCTION API URL
+        const API_BASE = 'https://itskevz-api.onrender.com'; 
+        
+        const gallery = document.getElementById('gallery');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const loadingState = document.getElementById('loadingState');
+
+        async function fetchRandomMedia() {
+            loadingState.style.display = 'block';
+            loadingState.innerText = 'Fetching memories...';
+            gallery.innerHTML = '';
+            gallery.appendChild(loadingState);
+
+            try {
+                // Fetch both random images and videos concurrently
+                const [imgRes, vidRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/images/random?limit=6`),
+                    fetch(`${API_BASE}/api/videos/random?limit=3`)
+                ]);
+
+                const imgData = await imgRes.json();
+                const vidData = await vidRes.json();
+
+                const allMedia = [
+                    ...(imgData.success ? imgData.data.map(i => ({...i, mediaType: 'image'})) : []),
+                    ...(vidData.success ? vidData.data.map(v => ({...v, mediaType: 'video'})) : [])
+                ];
+
+                // Shuffle the combined array
+                allMedia.sort(() => Math.random() - 0.5);
+
+                if (allMedia.length === 0) {
+                    loadingState.innerText = 'No memories found. Upload some first!';
+                    return;
+                }
+
+                loadingState.style.display = 'none';
+                
+                // Render Cards
+                allMedia.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'fade-in bg-slate-800/50 backdrop-blur rounded-xl overflow-hidden shadow-xl border border-slate-700';
+                    card.style.animationDelay = `${index * 0.1}s`;
+                    
+                    let mediaElement = '';
+                    if (item.mediaType === 'image') {
+                        mediaElement = `<img src="${item.url}" alt="${item.title || 'Memory'}" class="w-full h-72 object-cover hover:scale-105 transition-transform duration-500">`;
+                    } else {
+                        mediaElement = `<video src="${item.url}" controls class="w-full h-72 object-cover bg-black"></video>`;
+                    }
+
+                    card.innerHTML = `
+                        ${mediaElement}
+                        <div class="p-6">
+                            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">${item.mediaType}</span>
+                            <h3 class="text-2xl font-serif font-bold mt-2 mb-3">${item.title || 'Untitled Memory'}</h3>
+                            <p class="text-slate-400 text-sm italic leading-relaxed">"${item.description || 'No caption provided.'}"</p>
+                        </div>
+                    `;
+                    gallery.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error(error);
+                loadingState.innerText = 'Failed to load memories. Check API connection.';
+            }
+        }
+
+        shuffleBtn.addEventListener('click', fetchRandomMedia);
+    </script>
+</body>
+</html>
